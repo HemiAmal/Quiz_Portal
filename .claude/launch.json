@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "aaroh-quiz",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server.js"],
+      "port": 3100,
+      "env": { "PORT": "3100" }
+    }
+  ]
+}

@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0b0b">
+  <meta name="robots" content="noindex">
+  <title>Aaroh Quiz</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/student.css?v=6">
+</head>
+<body class="on-landing">
+  <div class="landing-bg" aria-hidden="true"></div>
+  <header class="site-head">
+    <img class="logo-iiitk" src="/img/iiitk-logo.png" alt="IIIT Kottayam">
+    <img class="logo-aaroh" src="/img/aaroh-logo.png" alt="Aaroh">
+  </header>
+
+  <main id="app">
+
+    <!-- Landing -->
+    <section class="view landing" id="view-home">
+      <div class="brand">
+        <p class="eyebrow">Aaroh Tech Fest · IIIT Kottayam</p>
+        <h1 id="site-name"><span class="name-a">Aaroh</span> <span class="name-b">Quiz</span></h1>
+        <p class="tagline">Space &amp; Technology Quiz for School Students</p>
+      </div>
+      <div class="landing-cta">
+        <button class="btn big bee" data-go="enter">Login <span class="arrow" aria-hidden="true">&rarr;</span></button>
+        <p class="landing-note">For students who registered and paid the ₹50 fee.</p>
+      </div>
+      <section class="announce" aria-labelledby="announce-title">
+        <h3 class="announce-title" id="announce-title">Announcements</h3>
+        <ul class="announce-list" id="announce-list"><li class="announce-empty">Loading schedule…</li></ul>
+      </section>
+    </section>
+
+    <!-- Enter details -->
+    <section class="view auth" id="view-enter" hidden>
+      <form class="auth-card" id="form-enter" autocomplete="off" novalidate>
+        <div class="auth-head">
+          <button class="back" type="button" data-go="home">&larr; Back</button>
+          <p class="eyebrow">Aaroh Quiz</p>
+          <h2>Enter your details</h2>
+          <p class="muted small">Use the same name and mobile number you gave when you registered.</p>
+        </div>
+
+        <div class="fields">
+          <label class="field">Full name
+            <input name="name" required maxlength="80" autocomplete="name" placeholder="As on your registration">
+          </label>
+          <label class="field">Mobile number
+            <span class="input-prefix"><span class="prefix">+91</span><input name="phone" required inputmode="numeric" maxlength="10" pattern="[0-9]{10}" autocomplete="tel" placeholder="10-digit number"></span>
+          </label>
+          <label class="field">School name
+            <input name="school" required maxlength="150" placeholder="Full name of your school">
+          </label>
+          <fieldset class="choice">
+            <legend>Did you pay the ₹50 registration fee?</legend>
+            <div class="choice-row">
+              <label><input type="radio" name="paid" value="yes" required><span>Yes, paid</span></label>
+              <label><input type="radio" name="paid" value="no"><span>No</span></label>
+            </div>
+          </fieldset>
+        </div>
+
+        <p class="error" role="alert"></p>
+        <button class="btn primary big" type="submit">Continue <span class="arrow" aria-hidden="true">&rarr;</span></button>
+      </form>
+      <p class="auth-foot">Your details are used only for this quiz.</p>
+    </section>
+
+    <!-- Lobby -->
+    <section class="view" id="view-lobby" hidden>
+      <div class="topbar">
+        <div>
+          <div class="hello">Hi, <span id="lobby-name"></span></div>
+          <div class="muted small" id="lobby-meta"></div>
+        </div>
+      </div>
+
+      <div id="lobby-quiz" class="card stack" hidden>
+        <div>
+          <p class="eyebrow" id="quiz-status">Upcoming quiz</p>
+          <h2 id="quiz-title"></h2>
+        </div>
+        <div class="facts">
+          <div><span id="quiz-qcount"></span><small>questions</small></div>
+          <div><span id="quiz-duration"></span><small>minutes</small></div>
+        </div>
+        <div class="countdown-wrap" id="countdown-wrap">
+          <p class="muted">Quiz starts in</p>
+          <div class="countdown" id="countdown">--:--:--</div>
+        </div>
+        <p class="muted small center" id="quiz-window"></p>
+        <div class="rules">
+          <h3>Rules</h3>
+          <ul id="rules-list"></ul>
+          <div id="quiz-instructions" class="instructions"></div>
+        </div>
+        <label class="check"><input type="checkbox" id="agree"> I have read the rules and will not use any unfair means.</label>
+        <p class="error" role="alert" id="start-error"></p>
+        <button class="btn primary big" id="btn-start" disabled>Start quiz</button>
+      </div>
+
+      <div id="lobby-empty" class="card stack center" hidden>
+        <p id="lobby-empty-text">There is no quiz scheduled right now. Please check back at the announced time.</p>
+      </div>
+    </section>
+
+    <!-- Quiz -->
+    <section class="view quiz" id="view-quiz" hidden>
+      <header class="qbar">
+        <div class="qprog">Q <span id="q-pos">1</span>/<span id="q-total">0</span></div>
+        <div class="qbar-right">
+          <div class="timer" id="timer" aria-live="off" title="Time remaining">--:--</div>
+          <img class="qbar-logo" src="/img/aaroh-logo.png" alt="Aaroh">
+        </div>
+      </header>
+      <nav class="qstrip" id="qstrip" aria-label="Question numbers"></nav>
+      <div class="legend">
+        <span><i class="dot answered"></i>Answered</span>
+        <span><i class="dot marked"></i>Marked for review</span>
+        <span><i class="dot"></i>Not answered</span>
+      </div>
+      <div class="save-state" id="save-state" aria-live="polite"></div>
+
+      <article class="qcard" id="qcard">
+        <p class="qnum" id="q-label">Question 1</p>
+        <h2 class="qtext" id="q-text"></h2>
+        <img id="q-img" alt="" hidden>
+        <div class="options" id="q-options" role="radiogroup"></div>
+      </article>
+
+      <footer class="qnav">
+        <button class="btn ghost" id="btn-prev">&larr; Previous</button>
+        <button class="btn mark" id="btn-mark" aria-pressed="false">Mark for review</button>
+        <button class="btn primary" id="btn-next">Save &amp; next &rarr;</button>
+      </footer>
+      <button class="btn danger big submit-btn" id="btn-submit">Submit quiz</button>
+      <div class="watermark-wrap" aria-hidden="true"><div class="watermark" id="watermark"></div></div>
+    </section>
+
+    <!-- Done -->
+    <section class="view" id="view-done" hidden>
+      <div class="card stack center">
+        <div class="done-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+        </div>
+        <h2>Answers submitted</h2>
+        <p id="done-text">Thank you for taking part. Your answers have been saved.</p>
+      </div>
+    </section>
+
+    <!-- Message (e.g. logged in elsewhere) -->
+    <section class="view" id="view-message" hidden>
+      <div class="card stack center">
+        <h2 id="msg-title">Logged out</h2>
+        <p id="msg-text"></p>
+        <button class="btn primary" data-go="enter">Enter details again</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal -->
+  <div class="modal" id="modal" hidden>
+    <div class="modal-body card stack">
+      <h3 id="modal-title"></h3>
+      <p id="modal-text"></p>
+      <div class="row" id="modal-actions"></div>
+    </div>
+  </div>
+
+  <script src="/student.js?v=6"></script>
+</body>
+</html>

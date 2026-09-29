@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Aaroh Quiz · Control</title>
+  <link rel="stylesheet" href="admin.css?v=6">
+</head>
+<body>
+  <!-- Login -->
+  <section id="login" class="login" hidden>
+    <img class="login-logo" src="/img/aaroh-logo.png" alt="Aaroh">
+    <form class="card stack" id="form-login">
+      <h1>Control panel</h1>
+      <label>Username<input name="username" autocomplete="username" required></label>
+      <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+      <p class="error"></p>
+      <button class="btn primary">Log in</button>
+    </form>
+  </section>
+
+  <!-- App -->
+  <div id="app" hidden>
+    <header class="top">
+      <div class="brand">Aaroh Quiz<span>Control panel</span></div>
+      <nav id="tabs">
+        <button data-tab="dashboard">Dashboard</button>
+        <button data-tab="quizzes">Quizzes</button>
+        <button data-tab="questions">Questions</button>
+        <button data-tab="students">Students</button>
+        <button data-tab="live">Live</button>
+        <button data-tab="results">Results</button>
+        <button data-tab="settings">Settings</button>
+      </nav>
+      <div class="top-right">
+        <button class="btn ghost sm" id="btn-logout">Log out</button>
+        <img class="top-logo" src="/img/aaroh-logo.png" alt="Aaroh">
+      </div>
+    </header>
+
+    <main>
+      <!-- Dashboard -->
+      <section class="tab" id="tab-dashboard">
+        <div class="tiles" id="stat-tiles"></div>
+        <div class="card">
+          <h2>Upcoming and running quizzes</h2>
+          <div id="upcoming"></div>
+        </div>
+      </section>
+
+      <!-- Quizzes -->
+      <section class="tab" id="tab-quizzes" hidden>
+        <div class="bar"><h2>Quizzes</h2><button class="btn primary" id="btn-new-quiz">+ New quiz</button></div>
+        <p class="hint" id="quiz-hint" hidden>Draft quizzes are hidden from students. Click <b>Publish</b> to show a quiz in the students' announcements and let them take it when it opens.</p>
+        <div class="card table-wrap"><table id="quiz-table"></table></div>
+      </section>
+
+      <!-- Questions -->
+      <section class="tab" id="tab-questions" hidden>
+        <div class="bar">
+          <h2>Questions</h2>
+          <select class="quiz-picker" id="q-quiz"></select>
+          <span class="spacer"></span>
+          <button class="btn ghost" id="btn-template">Download Excel template</button>
+          <label class="btn ghost file">Bulk upload (Excel/CSV)<input type="file" id="bulk-file" accept=".xlsx,.xls,.csv" hidden></label>
+          <button class="btn primary" id="btn-new-q">+ Add question</button>
+        </div>
+        <p class="muted" id="q-summary"></p>
+        <div id="q-list" class="qlist"></div>
+      </section>
+
+      <!-- Students -->
+      <section class="tab" id="tab-students" hidden>
+        <div class="bar">
+          <h2>Students</h2>
+          <input id="s-search" placeholder="Search name, school, phone">
+          <select id="s-progress"><option value="">Any status</option><option value="waiting">Waiting</option><option value="doing">Doing</option><option value="completed">Completed</option></select>
+          <span class="spacer"></span>
+          <button class="btn primary" id="btn-export-students">Export Excel</button>
+        </div>
+        <p class="muted" id="s-count"></p>
+        <p class="muted small">A profile is created when a student enters their details just before the exam. Waiting: not started yet. Doing: taking the quiz. Completed: submitted. Refreshes every 5 seconds. Click a name to see their answers.</p>
+        <div class="card table-wrap"><table id="student-table"></table></div>
+      </section>
+
+      <!-- Live -->
+      <section class="tab" id="tab-live" hidden>
+        <div class="bar">
+          <h2>Live monitor</h2>
+          <select class="quiz-picker" id="l-quiz"></select>
+          <span class="muted" id="l-summary"></span>
+        </div>
+        <div class="card table-wrap"><table id="live-table"></table></div>
+        <p class="muted small">Refreshes every 5 seconds. Rows with warnings are listed first.</p>
+      </section>
+
+      <!-- Results -->
+      <section class="tab" id="tab-results" hidden>
+        <div class="bar">
+          <h2>Results</h2>
+          <select class="quiz-picker" id="r-quiz"></select>
+          <label class="inline">Shortlist top <input type="number" id="r-top" min="1" value="20"></label>
+          <span class="spacer"></span>
+          <button class="btn ghost" id="btn-export-all">Export all</button>
+          <button class="btn primary" id="btn-export-short">Export shortlist</button>
+        </div>
+        <p class="muted small">Ranked by score. Ties go to the student who finished faster. "Paid" is what the student said; compare it with your paid list.</p>
+        <div class="card table-wrap"><table id="result-table"></table></div>
+      </section>
+
+      <!-- Settings -->
+      <section class="tab" id="tab-settings" hidden>
+        <div class="grid2">
+          <form class="card stack" id="form-settings">
+            <h2>Portal</h2>
+            <label>Portal name<input name="siteName" maxlength="60"></label>
+            <p class="ok"></p>
+            <button class="btn primary">Save</button>
+          </form>
+          <form class="card stack" id="form-password">
+            <h2>Change password</h2>
+            <label>Current password<input name="current" type="password" autocomplete="current-password" required></label>
+            <label>New password (10+ characters)<input name="next" type="password" autocomplete="new-password" minlength="10" required></label>
+            <p class="error"></p><p class="ok"></p>
+            <button class="btn primary">Change password</button>
+          </form>
+          <div class="card stack">
+            <h2>Keep this panel hidden</h2>
+            <p class="muted">Students never see a link to this page. Share this address only with organisers:</p>
+            <code id="admin-url"></code>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Dialog -->
+  <dialog id="dlg">
+    <form method="dialog" class="stack" id="dlg-form">
+      <div class="dlg-head"><h2 id="dlg-title"></h2><button type="button" class="btn ghost sm" id="dlg-close" aria-label="Close">✕</button></div>
+      <div id="dlg-body" class="stack"></div>
+      <p class="error" id="dlg-error"></p>
+      <div class="row" id="dlg-actions"></div>
+    </form>
+  </dialog>
+
+  <div id="toast" hidden></div>
+  <script src="admin.js?v=6"></script>
+</body>
+</html>

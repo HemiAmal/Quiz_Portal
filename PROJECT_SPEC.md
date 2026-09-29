@@ -1,0 +1,352 @@
+# Aaroh Quiz Portal: Project Specification
+
+**Version:** 1.0 (as built on 28 September 2026)
+**Location:** `D:\Downloads\Projects\Aaroh_Quiz_Portal`
+
+This document describes the complete quiz website: what it is for, how students and organisers use it, the exam rules, the anti-cheating measures, the data it keeps, and how it is built and hosted. It reflects the code as it currently works.
+
+---
+
+## 1. Purpose
+
+Aaroh Quiz is an online Space & Technology quiz for school students from different schools, organised with IIIT Kottayam. Students take the quiz on their own phone or laptop in a web browser, with nothing to install. The organisers run everything from a hidden admin panel.
+
+The goals are:
+
+- Run the quiz fully online for students from many schools at the same time.
+- Allow only one attempt per student, within a fixed time window set by the organisers.
+- Make cheating hard, and record anything suspicious for the organisers to review.
+- Keep marks and answers private: only the organisers see results.
+- Give the organisers the results and student details as Excel files.
+
+## 2. Users
+
+| User | What they do |
+|---|---|
+| **Student** | Opens the quiz link, enters their details, waits for the start time, takes the quiz, submits. Never sees marks or answers. |
+| **Organiser (admin)** | Creates the quiz and its time window, adds questions, watches students live, reviews each student's answers, downloads results in Excel. |
+
+There is no spot registration. Students register and pay the ₹50 fee beforehand, outside this website. The website asks each student whether they paid, and the organisers compare that answer with their own paid list after the quiz.
+
+---
+
+## 3. Student experience
+
+### 3.1 Landing page
+
+- Full-screen space background (Earth, Moon, satellite) from `public/img/bg.png`. On tall phone screens the picture is cropped to keep the Earth and sunrise in view.
+- IIIT Kottayam logo in the top-left corner, with a transparent background and white text (`public/img/iiitk-logo.png`).
+- Aaroh tech fest logo in the top-right corner of every page, student and admin (`public/img/aaroh-logo.png`, white on a transparent background).
+- The title "AAROH QUIZ", the tagline "Space & Tech Quiz", and a single **Start quiz** button.
+- A note that the quiz is for students who registered and paid the ₹50 fee, and that there is no spot registration.
+
+### 3.2 Entering details
+
+The Start quiz button opens a form with:
+
+| Field | Rule |
+|---|---|
+| Full name | Required, at least 2 characters |
+| Mobile number | Required, exactly 10 digits |
+| School name | Required, at least 3 characters |
+| Did you pay the ₹50 registration fee? | Required: Yes or No |
+
+- Nobody is blocked because of the fee answer. It is saved and shown to the organisers.
+- The first time a mobile number is entered, the student's **profile** is created, with the date and time.
+- Each mobile number can take **only one quiz in total**, even if several quizzes are scheduled. A number that has already submitted gets: "This mobile number has already taken the quiz. Each student can attend only one quiz."
+- If a student's phone dies or the browser closes during the quiz, entering the same mobile number again resumes the same quiz with the time that is left. The first device is logged out, and the organisers see "Logged in on another device" in that student's activity log.
+- Too many attempts from one network (more than 15 in 15 minutes) are temporarily refused, to stop guessing.
+
+### 3.3 Lobby (before the quiz opens)
+
+- Shows "Hi, (name)", the school and the mobile number.
+- Shows the quiz title, the number of questions and the duration in minutes.
+- Shows a countdown to the opening time. The countdown uses the server's clock, so a wrong phone clock doesn't matter.
+- States the opening time and the closing time.
+- Lists the rules (section 4), plus any extra instructions the organisers wrote.
+- The student ticks "I have read the rules and will not use any unfair means". The **Start quiz** button only works once the quiz is open and the box is ticked.
+- If no quiz is scheduled: "There is no quiz scheduled right now. Please check back at the announced time."
+
+### 3.4 Quiz screen
+
+| Part | Behaviour |
+|---|---|
+| Top bar | "Q 3/20" position, and the remaining time. Stays at the top while scrolling. |
+| Timer | Counts down using the server's time. Turns **red and pulses in the last 5 minutes**. |
+| Question number tab | A row of numbered buttons, one per question. Tapping a number jumps to that question. Colours: filled yellow = answered, orange ring = marked for review, white outline = current question. On phones the row scrolls sideways and keeps the current question in view; on computers it wraps onto several lines. |
+| Question card | Question number, question text, optional image, and options A to D (up to F). Tapping an option selects it; tapping it again clears it. |
+| Mark for review | Flags the question to come back to later (shown yellow). The organisers can see which questions were flagged. |
+| Previous / Save & next | Move to the previous or next question. Students can go back and change answers at any time before submitting. |
+| Save status | "Saving…", "All answers saved ✓", or "Offline. Your answers will save when the connection is back." |
+| Submit quiz | Submit at any time. A confirmation shows how many questions are unanswered or marked for review. |
+
+**Saving answers**
+
+- Each answer is saved to the server as soon as it is chosen, and again when the student moves to another question.
+- If the network drops, answers are kept on the phone and sent automatically when the connection returns (retried every 4 seconds).
+- The next question is loaded in the background, so "Save & next" is instant on slow networks.
+
+### 3.5 After submitting
+
+- The page shows "Answers submitted. Your answers have been submitted. Thank you for taking part."
+- No score, marks, correct answers or wrong answers are shown to the student, at any time.
+- If the time ran out: "Time is up. Your saved answers have been submitted automatically."
+
+### 3.6 Randomisation
+
+- Each student gets their own random set of questions from the question pool (for example 30 out of 60), set by the organisers.
+- The order of questions is shuffled for each student.
+- The order of options is shuffled for each student and each question.
+
+---
+
+## 4. Exam timing rules
+
+The organisers set three values for each quiz:
+
+| Setting | Meaning |
+|---|---|
+| **Opens at** | The earliest time a student can start. |
+| **Duration** | How long each student gets, in minutes (1 to 600). |
+| **Closes at** | A hard stop. After this time nobody can start or continue. |
+
+Each student's deadline is **the earlier of** (their start time + duration) and the closing time.
+
+**Example:** opens at 7:00 PM, duration 60 minutes, closes at 8:30 PM.
+
+| Student starts at | Their deadline | Time they get |
+|---|---|---|
+| 7:00 PM | 8:00 PM | 60 minutes |
+| 7:20 PM | 8:20 PM | 60 minutes |
+| 7:50 PM | 8:30 PM | 40 minutes |
+| 8:31 PM | Cannot start | None |
+
+- When a student's time runs out, their saved answers are submitted automatically.
+- This happens on the server, even if the student closed the page or lost their network. The server checks every 15 seconds.
+- Answers sent after the deadline are refused.
+- Changing the phone's clock or reloading the page does not add time.
+- Students may submit early at any time.
+
+---
+
+## 5. Anti-cheating measures
+
+| Measure | How it works |
+|---|---|
+| One attempt per mobile number | A number that has submitted cannot enter again. |
+| One device at a time | Entering the same details on a second device logs out the first and records "Logged in on another device". |
+| App/tab switch detection | Switching to another app or tab, or the window losing focus, shows a warning and is recorded. After the number of switches the organisers set (0 = never), the quiz is submitted automatically. |
+| Full screen on laptops | On computers the quiz opens in full screen. Leaving full screen counts as a switch. (Phones cannot be forced into full screen.) |
+| Random questions and options | Every student gets a different set and order, so sharing "Q5 is B" is useless. |
+| Answers checked on the server | The correct answers never reach the student's device. |
+| Server-controlled timer | The deadline is kept on the server. Reloading or changing the clock doesn't add time. |
+| Copy, paste, right-click, text selection | Blocked during the quiz. Attempts are recorded. |
+| Keyboard shortcuts | Developer tools (F12, Ctrl+Shift+I/J/C), view source, save and print shortcuts are blocked and recorded. Print Screen is recorded. |
+| Printing | Printing the page produces a blank page. |
+| Page reload | Reloading or reopening the quiz is recorded. |
+| Leaving the page | The browser asks for confirmation before closing the quiz. |
+| Name watermark | The student's name and mobile number are faintly tiled across the quiz screen, so any leaked screenshot shows who took it. |
+| Hidden admin panel | The admin panel is at a secret random address. Students never see a link to it, and `/admin` returns "Not found". |
+| Rate limits | Repeated wrong admin logins (more than 10 in 15 minutes) and repeated student entries (more than 15 in 15 minutes) are temporarily blocked. |
+
+Recorded events: switched app/tab, left window, left full screen, tried to copy, tried to paste, right-click, Print Screen key, developer tools/save/print key, reloaded page, logged in on another device. Only the first three count toward automatic submission; the rest are recorded for review.
+
+**Limits:** no website can fully stop screenshots, a second phone, or someone helping in the same room. These measures discourage cheating and flag it for the organisers to review. On some phones, pulling down the notification bar or an incoming call also counts as leaving the screen, so a switch limit of 3 or more is fairer than 1.
+
+---
+
+## 6. Admin panel
+
+The admin panel is at a secret address (for example `http://localhost:3100/control-xxxxxxxxxxxx/`), with a username and password login. An admin login lasts 12 hours.
+
+### 6.1 Dashboard
+
+- Student profiles created
+- Students who said they paid ₹50
+- Students doing the quiz now
+- Students who completed it
+- Upcoming and running quizzes with their status (Draft, Scheduled, Live now, Ended)
+
+### 6.2 Quizzes
+
+- Create, edit and delete quizzes.
+- Settings for each quiz: title, opens at, closes at, duration, questions per student (0 = all), number of app switches before automatic submission (0 = never), extra instructions for students, and Published (students can see it only when published).
+- The list shows the time window, duration, question count, submissions and status.
+
+### 6.3 Questions
+
+- A question bank for each quiz.
+- Each question has: text, 2 to 6 options, the correct option, category (for example Space, Technology, Science, General), difficulty (Easy, Medium, Hard), marks, and an optional image (PNG, JPG, WEBP or GIF, under 2 MB).
+- Add, edit and delete questions one at a time.
+- **Download Excel template** with the columns: Question, Option A, Option B, Option C, Option D, Correct (A/B/C/D), Category, Difficulty, Marks, Image URL.
+- **Bulk upload** from Excel (.xlsx, .xls) or CSV. Rows with problems are skipped and listed with the reason.
+- `sample-questions.csv` in the project folder has 20 ready Space & Tech questions.
+
+### 6.4 Students
+
+- Every profile appears as soon as a student enters their details. The list refreshes every 5 seconds.
+- Columns: name, mobile, school, paid ₹50 (Yes/No), when the profile was created, status, score, right / wrong / flagged.
+- **Status:** Waiting (entered details, not started), Doing (taking the quiz), Completed (submitted, with the time).
+- Search by name, school or mobile, and filter by status.
+- Click a name (or Details) to see the student's full record (section 6.7).
+- **Block / Unblock** a student (logs them out immediately).
+- **Delete** a student's profile, answers and score, so that mobile number can start again.
+- **Export Excel** (section 7.2).
+
+### 6.5 Live monitor
+
+- For the chosen quiz: everyone taking it right now, refreshed every 5 seconds.
+- Columns: student, school, questions answered, questions flagged, time left, warnings, last seen.
+- Students with the most warnings are listed first.
+- **Details** opens the student's record; **End now** submits their saved answers immediately.
+
+### 6.6 Results
+
+- All submissions for the chosen quiz, ranked by score. Ties go to the student who finished faster, then to whoever submitted earlier.
+- Columns: rank, name and mobile, school, paid?, score / total, right, wrong, unanswered, flagged, time taken, warnings, and how it ended (submitted by student, time up, too many switches, ended by admin).
+- **Shortlist top N** highlights the top N students.
+- **Export all** and **Export shortlist** to Excel (section 7.2).
+
+### 6.7 Student record (Details)
+
+- Name, school, mobile, the paid answer and the quiz.
+- When the profile was created, when they started, and when and how they submitted (or "Still doing the quiz").
+- Score, right, wrong, unanswered, flagged, warnings and time taken.
+- The activity log: every recorded event with the time.
+- Every question in the order the student saw it, with their answer (green if right, red if wrong, "—" if unanswered), the correct answer, and a ★ if they flagged it.
+- **Allow retake** deletes the attempt so the student can take the quiz again (for a genuine technical problem).
+
+### 6.8 Settings
+
+- Rename the portal.
+- Change the admin password (at least 10 characters).
+- Shows the secret admin address to share with organisers only.
+
+---
+
+## 7. Data
+
+### 7.1 What is stored
+
+All data is kept in one SQLite database file, `data/aaroh.db`.
+
+| Table | Contents |
+|---|---|
+| students | Name, mobile (unique), school, paid (yes/no), blocked or active, when the profile was created |
+| quizzes | Title, instructions, opens at, closes at, duration, questions per student, switch limit, published |
+| questions | Quiz, text, image, options, correct option, category, difficulty, marks |
+| attempts | Student, quiz, started, deadline, submitted, how it ended, the student's question and option order, score, right, wrong, unanswered, flagged, total marks, time taken, warnings |
+| answers | Attempt, question, chosen option, marked for review, when answered |
+| violations | Attempt, event type, detail, time |
+| sessions | Login sessions for students and admins |
+| admins | Admin usernames and password hashes |
+| settings | Portal name, secret admin path |
+
+Question images are stored in the `uploads/` folder.
+
+### 7.2 Excel exports
+
+**Students → Export Excel** (`aaroh-students.xlsx`): Name, Mobile, School, Paid Rs 50 (says), Profile created, Status, Quiz, Score, Total marks, Right, Wrong, Unanswered, Flagged for review, Started, Submitted, Ended by, Warnings.
+
+**Results → Export all / Export shortlist** (`<quiz>-results.xlsx`, `<quiz>-shortlist-topN.xlsx`): Rank, Name, Mobile, School, Paid Rs 50 (says), Score, Total marks, Right, Wrong, Unanswered, Flagged for review, Questions, Profile created, Started, Time taken, Warnings, Ended by, Submitted.
+
+---
+
+## 8. Technology
+
+| Part | Technology |
+|---|---|
+| Server | Node.js (18 or newer) with Express |
+| Database | SQLite (better-sqlite3), a single file |
+| Student site and admin panel | Plain HTML, CSS and JavaScript (no framework, no build step) |
+| Excel import/export | SheetJS (`xlsx` 0.20.3), loaded in the admin panel only |
+| Passwords | scrypt hashing with a random salt |
+| Sessions | Random tokens in HttpOnly, SameSite=Strict cookies. Student session: 1 day. Admin session: 12 hours. |
+| Security headers | Content-Security-Policy, X-Frame-Options DENY, no-referrer, nosniff, camera/microphone/location disabled |
+
+Works on phones and computers in any modern browser (Chrome, Edge, Firefox, Safari). The layout adapts to phone screens.
+
+### Project files
+
+```
+server.js           app setup, security headers, secret admin path, first admin account
+db.js               database tables
+lib/common.js       passwords, cookies, rate limits, grading, automatic submission
+routes/student.js   student API: enter details, lobby, quiz, autosave, warnings, submit
+routes/admin.js     admin API: quizzes, questions, students, live, results, details
+public/             student website (index.html, student.js, student.css, img/)
+admin/              admin panel (index.html, admin.js, admin.css)
+sample-questions.csv   20 sample questions
+README.md           setup and hosting guide
+DEVELOPMENT.md      notes for continuing development
+PROJECT_SPEC.md     this document
+```
+
+---
+
+## 9. Running and hosting
+
+### On a computer (for testing)
+
+```powershell
+npm install
+$env:PORT=3100; npm start
+```
+
+- The first start creates the admin account and prints the secret admin address. Set `$env:ADMIN_PASSWORD='...'` before the first start to choose the password.
+- Student site: `http://localhost:3100`.
+
+### Online (for quiz day)
+
+Any host that runs Node.js and keeps files on disk:
+
+- a small VPS (DigitalOcean, Hetzner, AWS Lightsail and similar), or
+- Render or Railway with a persistent disk.
+
+Free plans that sleep or wipe the disk on restart are not suitable. Use HTTPS, and set these options:
+
+| Setting | Purpose |
+|---|---|
+| `PORT` | Port to listen on (default 3000) |
+| `ADMIN_PASSWORD` | Password for the first admin account |
+| `ADMIN_USER` | Username for the first admin (default `admin`) |
+| `ADMIN_PATH` | A fixed secret admin address, for example `/control-a8f3k2` |
+| `DATA_DIR` | Where the database is kept (default `./data`) |
+| `UPLOAD_DIR` | Where question images are kept (default `./uploads`) |
+| `COOKIE_SECURE` | `true` when served over HTTPS |
+| `TRUST_PROXY` | `true` behind a hosting proxy, so rate limits see real addresses |
+
+A modest server can handle a couple of thousand students taking the quiz at the same time. Back up `data/aaroh.db` before and after the quiz.
+
+---
+
+## 10. Quiz-day checklist
+
+1. **Quizzes → New quiz:** set opens at, duration and closes at, questions per student and the switch limit. Tick Published.
+2. **Questions → Bulk upload** the question file, then check the questions.
+3. Do a test run with a test quiz and a test phone, then delete the test quiz and test students.
+4. Share the student link.
+5. During the quiz, watch **Students** (Waiting / Doing / Completed) and **Live** (progress and warnings).
+6. After the closing time, open **Results**, check any student with warnings using **Details**, and export the results to Excel.
+7. Compare the "Paid Rs 50 (says)" column with the organisers' paid list, and remove anyone who did not pay.
+8. Back up `data/aaroh.db`.
+
+---
+
+## 11. Decisions made so far
+
+| Decision | Choice |
+|---|---|
+| Registration | No spot registration. Students register and pay outside the website. |
+| Fee check | The website asks "Did you pay the ₹50 registration fee?" (Yes/No) and never blocks on it. Organisers compare with their paid list afterwards. |
+| Student identity | Name, mobile number and school, entered just before the exam. The profile is created at that moment. |
+| Attempts | One quiz per mobile number in total: after submitting any quiz, a student cannot enter or start another. The admin can allow a retake. |
+| Announcements | The landing page lists every published quiz that has not closed yet (title, date and time window, questions, duration, "Live now" or "Opens in …"). Draft quizzes are hidden. The admin Quizzes list has a one-click Publish / Unpublish button. |
+| Timing | Opening time, duration per student, and a hard closing time with automatic submission. |
+| Results privacy | Students never see marks, correct answers or wrong answers. Only the admin sees results. |
+| Navigation | Question number tab, previous/next, answers saved immediately, mark for review, submit any time. |
+| Timer warning | Timer turns red in the last 5 minutes. |
+| Admin detail | Right, wrong, unanswered and flagged per student, plus each question with the student's answer and the correct answer. |
+| Exports | Excel files with name, mobile, school, paid answer and marks. |
+| Branding | Space background on the landing page, IIIT Kottayam logo top-left, Aaroh logo top-right. Student site and admin panel share one minimal black-and-yellow look: one yellow accent, off-white text, no gradients. |
+| Levels | No HS/HSS split. One quiz is open to every student. |

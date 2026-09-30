@@ -133,9 +133,12 @@ if (require.main === module) {
     let app;
     try { app = await getApp(); } catch (e) {
       console.error('Failed to start:', e);
-      res.statusCode = 500;
+      // Setup problems (no database connected) say what to do; anything else stays in the logs only.
+      const error = e.setup ? e.message : 'The quiz server could not start. Please try again in a moment. (Organisers: see the Logs tab in Vercel.)';
+      res.statusCode = 503;
       res.setHeader('Content-Type', 'application/json');
-      return res.end(JSON.stringify({ error: 'The quiz server could not start. Please try again in a moment.' }));
+      res.setHeader('Cache-Control', 'no-store');
+      return res.end(JSON.stringify({ error }));
     }
     return app(req, res);
   };

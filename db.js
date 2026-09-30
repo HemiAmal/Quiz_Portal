@@ -7,7 +7,27 @@ const fs = require('fs');
 //    its files in DATA_DIR/pg. Nothing to install, and `npm start` works offline.
 // Each driver exposes query(text, values) -> { rows, fields, rowCount }, exec(sql) for the multi-statement
 // schema, and transaction(fn) where fn receives a query function pinned to one connection.
-const CONNECTION = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+const CONNECTION = findConnection();
+
+// Vercel names the variable POSTGRES_URL or DATABASE_URL, optionally with a prefix chosen when the
+// database was connected (e.g. STORAGE_POSTGRES_URL). Pooled addresses are preferred; if only a direct
+// Neon address is present it is turned into the pooled one (same host with "-pooler" on the first part),
+// because a serverless function opens far more connections than a direct address allows.
+function findConnection() {
+  const env = process.env;
+  const named = Object.keys(env).filter((k) => /(^|_)(POSTGRES_URL|DATABASE_URL)$/.test(k) && env[k]);
+  const direct = Object.keys(env).filter((k) => /(^|_)(POSTGRES_URL_NON_POOLING|DATABASE_URL_UNPOOLED)$/.test(k) && env[k]);
+  const pick = ['POSTGRES_URL', 'DATABASE_URL', ...named, ...direct].map((k) => env[k]).find(Boolean);
+  if (!pick) return null;
+  try {
+    const url = new URL(pick);
+    if (url.hostname.endsWith('.neon.tech') && !url.hostname.split('.')[0].endsWith('-pooler')) {
+      url.hostname = url.hostname.replace(/^([^.]+)/, '$1-pooler');
+      return url.toString();
+    }
+  } catch { /* not a URL we can adjust: use it as given */ }
+  return pick;
+}
 
 function hostedDriver() {
   const { createPool } = require('@vercel/postgres');
@@ -35,7 +55,9 @@ function hostedDriver() {
 
 function localDriver() {
   if (process.env.VERCEL) {
-    throw new Error('No database configured. Connect a Postgres (Neon) database to this Vercel project so POSTGRES_URL is set, then redeploy.');
+    const e = new Error('No database is connected. In Vercel open this project, go to Storage, create or connect a Postgres (Neon) database, then redeploy.');
+    e.setup = true; // safe to show to the visitor: it says what to set up and contains nothing secret
+    throw e;
   }
   const dir = path.join(process.env.DATA_DIR || path.join(__dirname, 'data'), 'pg');
   fs.mkdirSync(dir, { recursive: true });
@@ -50,7 +72,15 @@ function localDriver() {
   };
 }
 
-const driver = CONNECTION ? hostedDriver() : localDriver();
+// Created on first use, not when this file loads: a missing or wrong database then shows up as a
+// readable error page (see server.js) instead of crashing the whole function on Vercel.
+let opened;
+const open = () => { if (!opened) opened = CONNECTION ? hostedDriver() : localDriver(); return opened; };
+const driver = {
+  query: async (text, values) => open().query(text, values),
+  exec: async (sql) => open().exec(sql),
+  transaction: async (fn) => open().transaction(fn),
+};
 
 // Postgres returns BIGINT (and COUNT(*)) as strings. Every BIGINT here is a millisecond timestamp or a
 // count, all far below 2^53, so turn them back into numbers — the rest of the app and both front ends

@@ -14,7 +14,9 @@ $env:PORT=3100; npm start
 - Student site: `http://localhost:3100`
 - Admin panel: the secret address printed at startup (stored in the database, so it stays the same across restarts)
 - The first start creates the `admin` account. Set `$env:ADMIN_PASSWORD='...'` before the very first start to choose the password; otherwise a random one is printed once.
-- `data/aaroh.db` is the SQLite database. Deleting the `data` folder resets everything (quizzes, students, admin account, admin path).
+- The database is Postgres. Locally it is PGlite (a Postgres engine inside Node, files in `data/pg`); on Vercel it is the connected Neon database (`POSTGRES_URL`). Same SQL for both. Deleting `data/pg` resets the local copy (quizzes, students, admin account, admin path).
+- `data/aaroh.db` is the old SQLite file from before the move to Vercel. `node scripts/import-sqlite.js` copies it into whichever Postgres is configured.
+- **Vercel has no disk and no background timer**, so: question images are stored in the database (or Vercel Blob if connected), rate limits are counted in the database, and overdue quizzes are auto-submitted on the student's next request and on any admin request (plus a daily cron) rather than by a 15-second timer. Locally the 15-second timer still runs.
 - There is no build step and no auto-reload: after changing server files (`server.js`, `db.js`, `lib/`, `routes/`), stop and start the server again. Changes to `public/` and `admin/` only need a browser refresh (Ctrl+F5, static files are cached for 1 hour).
 
 ## Code map
@@ -22,7 +24,9 @@ $env:PORT=3100; npm start
 | Path | What it does |
 |---|---|
 | `server.js` | Express setup, security headers, secret admin path, first admin account |
-| `db.js` | SQLite schema (created on start with `CREATE TABLE IF NOT EXISTS`) |
+| `db.js` | Postgres connection (hosted or local PGlite), query helpers, schema (created on start with `CREATE TABLE IF NOT EXISTS`) |
+| `api/index.js`, `vercel.json` | Vercel entry point and routing |
+| `scripts/import-sqlite.js` | One-time copy of the old SQLite data into Postgres |
 | `lib/common.js` | Password hashing, cookies, rate limits, grading (`finalizeAttempt`), auto-submit sweep |
 | `routes/student.js` | Student API: enter details, lobby, start, questions, autosave, warnings, submit |
 | `routes/admin.js` | Admin API: quizzes, questions, students, live monitor, results, attempt details |

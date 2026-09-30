@@ -84,31 +84,38 @@ In **Quizzes → New quiz** set **Opens at**, **Duration** and **Closes at**. Ex
 
 ## Putting it online
 
-It's a single Node.js app with a SQLite database file, so any host that runs Node and keeps files on disk works:
+The app stores everything in Postgres, so it runs on Vercel.
 
-- a small VPS (DigitalOcean, Hetzner, AWS Lightsail and similar), or
-- Render or Railway **with a persistent disk** mounted at `DATA_DIR`
-
-Free tiers that sleep or wipe the disk on restart are not suitable for quiz day. Put it behind HTTPS (most hosts do this automatically) and set:
+1. Push the project to GitHub and import the repo in Vercel. `vercel.json` already sets the routing, so leave the build settings empty.
+2. In the project's **Storage** tab, create a Postgres (Neon) database and connect it to the project. That adds `POSTGRES_URL` for you.
+3. In **Settings → Environment Variables**, add the variables below, then redeploy.
 
 | Variable | Purpose |
 |---|---|
-| `PORT` | Port to listen on (default 3000) |
-| `ADMIN_PASSWORD` | Password for the first admin account (only used on first start) |
-| `ADMIN_USER` | Username for the first admin (default `admin`) |
-| `ADMIN_PATH` | Fixed secret admin path, e.g. `/control-a8f3k2`. Otherwise one is generated and stored |
-| `DATA_DIR` | Where the database lives (default `./data`) |
-| `UPLOAD_DIR` | Where question images are stored (default `./uploads`) |
-| `COOKIE_SECURE` | Set to `true` when served over HTTPS |
-| `TRUST_PROXY` | Set to `true` behind a hosting proxy/load balancer so rate limits see real IPs |
+| `ADMIN_USER` | Username for the first admin (default `admin`). Only used when the database has no admin yet |
+| `ADMIN_PASSWORD` | Password for the first admin. Only used when the database has no admin yet |
+| `ADMIN_PATH` | Secret admin path, e.g. `/control-a8f3k2`. Set it, otherwise you have to read the generated one from the logs |
+| `CRON_SECRET` | Any random string; protects the scheduled clean-up endpoint |
 
-A modest server handles a couple of thousand students taking the quiz at the same time. Back up `data/aaroh.db` before and after the quiz.
+Optional: connect a **Blob** store as well and question images go there (`BLOB_READ_WRITE_TOKEN`). Without it they are kept in the database, which is fine for a quiz's worth of pictures.
+
+Secure cookies and the proxy setting are switched on automatically on Vercel.
+
+**Bringing existing data along.** To copy the quizzes, questions, students and admin account from an older `data/aaroh.db` into the hosted database, run this once on your computer with the connection string from the database's page in Vercel (the pooled one):
+
+```powershell
+$env:POSTGRES_URL='postgres://...'; node scripts/import-sqlite.js
+```
+
+**On your own machine** nothing needs setting: `npm start` uses a built-in local Postgres (PGlite) that keeps its files in `data/pg`. Set `POSTGRES_URL` only if you want your machine to use the hosted database.
+
+Attempts whose time has run out are submitted the next time that student's page talks to the server, and whenever an organiser opens any page of the admin panel. A daily scheduled job catches the rest.
 
 ## Project layout
 
 ```
 server.js          app setup, security headers, secret admin path
-db.js              SQLite schema
+db.js              Postgres schema and query helpers
 lib/common.js      passwords, codes, rate limits, grading
 routes/student.js  student API (enter details, quiz, autosave, warnings)
 routes/admin.js    admin API

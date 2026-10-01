@@ -87,6 +87,12 @@ router.post('/enter', rateLimit('enter', 15, 15 * 60_000), ah(async (req, res) =
   if (b.paid !== 'yes' && b.paid !== 'no') return res.status(400).json({ error: 'Please tell us whether you paid the Rs 50 registration fee.' });
   const paid = b.paid === 'yes' ? 1 : 0;
 
+  // Approved list: once the organisers have uploaded their paid list, only numbers on it can enter.
+  const listed = await db.get('SELECT EXISTS (SELECT 1 FROM approved WHERE phone = ?) AS ok, EXISTS (SELECT 1 FROM approved) AS active', [phone]);
+  if (listed.active && !listed.ok) {
+    return res.status(403).json({ error: 'This number is not registered. Contact the organisers.' });
+  }
+
   const now = Date.now();
   let student = await db.get('SELECT * FROM students WHERE phone = ?', [phone]);
   if (student) {

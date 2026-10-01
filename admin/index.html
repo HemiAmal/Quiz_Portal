@@ -29,6 +29,7 @@
         <button data-tab="quizzes">Quizzes</button>
         <button data-tab="questions">Questions</button>
         <button data-tab="students">Students</button>
+        <button data-tab="approved">Approved list</button>
         <button data-tab="live">Live</button>
         <button data-tab="results">Results</button>
         <button data-tab="settings">Settings</button>
@@ -82,6 +83,22 @@
         <p class="muted" id="s-count"></p>
         <p class="muted small">A profile is created when a student enters their details just before the exam. Waiting: not started yet. Doing: taking the quiz. Completed: submitted. Refreshes every 5 seconds. Click a name to see their answers.</p>
         <div class="card table-wrap"><table id="student-table"></table></div>
+      </section>
+
+      <!-- Approved list -->
+      <section class="tab" id="tab-approved" hidden>
+        <div class="bar">
+          <h2>Approved list</h2>
+          <input id="a-search" placeholder="Search name, school, phone">
+          <span class="spacer"></span>
+          <button class="btn ghost" id="btn-a-template">Download template</button>
+          <label class="btn ghost file">Upload list (Excel/CSV)<input type="file" id="a-file" accept=".xlsx,.xls,.csv" hidden></label>
+          <button class="btn ghost" id="btn-a-add">+ Add student</button>
+          <button class="btn danger" id="btn-a-clear">Clear list</button>
+        </div>
+        <p class="hint" id="a-status"></p>
+        <p class="muted small">Upload the students who registered and paid, with columns <b>Name</b>, <b>Mobile</b> and optionally <b>School</b>. Uploading again adds new numbers and updates existing ones. "Entered" shows who has logged in on the quiz site.</p>
+        <div class="card table-wrap"><table id="approved-table"></table></div>
       </section>
 
       <!-- Live -->
@@ -146,6 +163,6 @@
   </dialog>
 
   <div id="toast" hidden></div>
-  <script src="admin.js?v=6"></script>
+  <script src="admin.js?v=7"></script>
 </body>
 </html>

@@ -338,7 +338,7 @@ A modest server can handle a couple of thousand students taking the quiz at the 
 | Decision | Choice |
 |---|---|
 | Registration | No spot registration. Students register and pay outside the website. |
-| Fee check | The website asks "Did you pay the ₹50 registration fee?" (Yes/No) and never blocks on it. Organisers compare with their paid list afterwards. |
+| Fee check | Organisers upload their paid list (Name, Mobile, School) in Admin → Approved list. Once it has numbers, only those mobiles can log in; others see "This number is not registered. Contact the organisers." While the list is empty anyone can log in. The "Did you pay ₹50?" question is still asked and recorded. |
 | Student identity | Name, mobile number and school, entered just before the exam. The profile is created at that moment. |
 | Attempts | One quiz per mobile number in total: after submitting any quiz, a student cannot enter or start another. The admin can allow a retake. |
 | Announcements | The landing page lists every published quiz that has not closed yet (title, date and time window, questions, duration, "Live now" or "Opens in …"). Draft quizzes are hidden. The admin Quizzes list has a one-click Publish / Unpublish button. |

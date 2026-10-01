@@ -282,6 +282,50 @@ module.exports = function adminRouter(adminPath) {
     res.json({ ok: true });
   }));
 
+  // ---------- approved list (students who registered and paid) ----------
+  // While the list is empty anyone can enter; once it has numbers, only those numbers can.
+  const toPhone = (v) => String(v ?? '').replace(/\D/g, '').slice(-10); // same rule as the student login
+  const UPSERT_APPROVED = `INSERT INTO approved (phone, name, school, added_at) VALUES (?, ?, ?, ?)
+    ON CONFLICT (phone) DO UPDATE SET name = excluded.name, school = excluded.school`;
+
+  router.get('/approved', ah(async (req, res) => {
+    res.json(await db.all(`SELECT a.*, (s.id IS NOT NULL) AS entered FROM approved a
+      LEFT JOIN students s ON s.phone = a.phone ORDER BY a.name, a.phone`));
+  }));
+
+  router.post('/approved', ah(async (req, res) => {
+    const phone = toPhone(req.body?.phone);
+    if (!/^\d{10}$/.test(phone)) return res.status(400).json({ error: 'Enter a 10-digit mobile number.' });
+    await db.run(UPSERT_APPROVED, [phone, clean(req.body?.name, 80), clean(req.body?.school, 150), Date.now()]);
+    res.json({ ok: true });
+  }));
+
+  // Bulk upload: rows already parsed from Excel/CSV in the browser. A number already on the list is updated, not duplicated.
+  router.post('/approved/bulk', ah(async (req, res) => {
+    const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
+    const errors = [];
+    let added = 0;
+    await withTransaction(async (tx) => {
+      for (let i = 0; i < rows.length; i++) {
+        const phone = toPhone(rows[i].phone);
+        if (!/^\d{10}$/.test(phone)) { errors.push(`Row ${i + 2}: "${clean(rows[i].phone, 30)}" is not a 10-digit mobile number.`); continue; }
+        await tx.run(UPSERT_APPROVED, [phone, clean(rows[i].name, 80), clean(rows[i].school, 150), Date.now()]);
+        added++;
+      }
+    });
+    res.json({ added, errors });
+  }));
+
+  router.delete('/approved/:phone', ah(async (req, res) => {
+    await db.run('DELETE FROM approved WHERE phone = ?', [toPhone(req.params.phone)]);
+    res.json({ ok: true });
+  }));
+
+  router.delete('/approved', ah(async (req, res) => {
+    await db.run('DELETE FROM approved');
+    res.json({ ok: true });
+  }));
+
   // ---------- attempts, live monitor, results ----------
   router.get('/quizzes/:id/live', ah(async (req, res) => {
     await sweepExpired();

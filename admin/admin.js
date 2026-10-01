@@ -441,6 +441,100 @@
     Started: dt(s.started_at), Submitted: dt(s.submitted_at), 'Ended by': REASONS[s.submit_reason] || '', Warnings: s.violations ?? '',
   }))).catch((ex) => toast(ex.message));
 
+  // ---------- approved list (students who registered and paid) ----------
+  let approved = [];
+  const renderApproved = () => {
+    const q = $('#a-search').value.trim().toLowerCase();
+    const rows = q ? approved.filter((a) => `${a.name} ${a.school} ${a.phone}`.toLowerCase().includes(q)) : approved;
+    const entered = approved.filter((a) => a.entered).length;
+    $('#a-status').innerHTML = approved.length
+      ? `<b>${approved.length}</b> approved number${approved.length === 1 ? '' : 's'} · ${entered} entered. Only these numbers can log in to the quiz.`
+      : 'The list is empty, so <b>anyone</b> can log in. Upload your paid list to allow only registered students.';
+    $('#approved-table').innerHTML = rows.length
+      ? `<tr><th>Name</th><th>Mobile</th><th>School</th><th>Entered</th><th></th></tr>${rows.map((a) => `
+      <tr>
+        <td><b>${esc(a.name) || '<span class="muted">—</span>'}</b></td>
+        <td class="num">${esc(a.phone)}</td>
+        <td>${esc(a.school)}</td>
+        <td>${a.entered ? '<span class="badge good">Yes</span>' : '<span class="badge">Not yet</span>'}</td>
+        <td><button class="btn sm danger" data-phone="${esc(a.phone)}">Remove</button></td>
+      </tr>`).join('')}`
+      : `<tr><td class="empty">${approved.length ? 'No match.' : 'No approved students yet.'}</td></tr>`;
+  };
+  loaders.approved = async () => { approved = await api('approved'); renderApproved(); };
+  $('#a-search').oninput = renderApproved;
+
+  $('#approved-table').addEventListener('click', async (e) => {
+    const b = e.target.closest('button[data-phone]');
+    if (!b) return;
+    const a = approved.find((x) => x.phone === b.dataset.phone);
+    if (!(await confirmBox('Remove from list?', `${a.name || a.phone} (${a.phone}) will no longer be able to log in.`, 'Remove'))) return;
+    await del(`approved/${a.phone}`);
+    loaders.approved();
+  });
+
+  $('#btn-a-add').onclick = () => dialog({
+    title: 'Add student',
+    body: `<label>Name<input name="name" maxlength="80"></label>
+      <label>Mobile number<input name="phone" inputmode="numeric" maxlength="14"></label>
+      <label>School (optional)<input name="school" maxlength="150"></label>`,
+    actions: [{ label: 'Cancel' }, {
+      label: 'Add', cls: 'primary', run: async (b) => {
+        await post('approved', { name: $('[name=name]', b).value, phone: $('[name=phone]', b).value, school: $('[name=school]', b).value });
+        toast('Added to the approved list');
+        loaders.approved();
+      },
+    }],
+  });
+
+  $('#btn-a-clear').onclick = async () => {
+    if (!(await confirmBox('Clear the approved list?', 'Every number will be removed and anyone will be able to log in again until you upload a new list.', 'Clear list'))) return;
+    await del('approved');
+    toast('Approved list cleared');
+    loaders.approved();
+  };
+
+  $('#btn-a-template').onclick = async () => {
+    try {
+      const XLSX = await loadXLSX();
+      const ws = XLSX.utils.aoa_to_sheet([['Name', 'Mobile', 'School'], ['Anika Menon', '9876543210', 'Govt HSS Kottayam']]);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Approved');
+      XLSX.writeFile(wb, 'aaroh-approved-list-template.xlsx');
+    } catch (ex) { toast(ex.message); }
+  };
+
+  $('#a-file').onchange = async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const XLSX = await loadXLSX();
+      const wb = XLSX.read(await file.arrayBuffer());
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '', raw: false });
+      // Column names vary between registration sheets, so match on the words they usually contain, best word
+      // first, skipping columns that contain an excluded word ("School name" is not the student's name).
+      const pick = (r, words, not = []) => {
+        const keys = Object.keys(r).map((k) => [k, k.trim().toLowerCase()]).filter(([, l]) => !not.some((n) => l.includes(n)));
+        for (const w of words) for (const [k, l] of keys) if (l.includes(w)) return String(r[k]).trim();
+        return '';
+      };
+      const parsed = rows.map((r) => ({
+        name: pick(r, ['name', 'student'], ['school', 'parent', 'father', 'mother', 'guardian']),
+        phone: pick(r, ['mobile', 'phone', 'whatsapp', 'contact']),
+        school: pick(r, ['school']),
+      })).filter((r) => r.name || r.phone);
+      if (!parsed.length) throw new Error('No students found. Use the columns Name, Mobile and School (download the template).');
+      const res = await post('approved/bulk', { rows: parsed });
+      await loaders.approved();
+      dialog({
+        title: 'Upload finished',
+        body: `<p>Added or updated <b>${res.added}</b> student${res.added === 1 ? '' : 's'}.</p>${res.errors.length ? `<p class="error">${res.errors.length} row(s) skipped:</p><div class="log">${res.errors.map(esc).join('<br>')}</div>` : ''}`,
+        actions: [{ label: 'OK', cls: 'primary' }],
+      });
+    } catch (ex) { toast(ex.message); }
+  };
+
   // ---------- live ----------
   loaders.live = async () => {
     await refreshQuizzes();

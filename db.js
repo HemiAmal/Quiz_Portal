@@ -253,6 +253,15 @@ async function ensureSchema() {
       reset_at BIGINT NOT NULL
     );
 
+    -- Approved list: the mobile numbers of students who registered and paid. When it has at least one
+    -- number, only those numbers can enter the quiz. Empty means no restriction.
+    CREATE TABLE IF NOT EXISTS approved (
+      phone TEXT PRIMARY KEY,
+      name TEXT NOT NULL DEFAULT '',
+      school TEXT NOT NULL DEFAULT '',
+      added_at BIGINT NOT NULL
+    );
+
     -- Question images, used only when no Vercel Blob store is connected.
     CREATE TABLE IF NOT EXISTS images (
       name TEXT PRIMARY KEY,

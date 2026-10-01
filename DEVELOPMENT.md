@@ -37,7 +37,7 @@ Plain HTML/CSS/JavaScript on the front end (no framework). SheetJS (`xlsx` packa
 
 ## Decisions already made (keep unless the organisers change them)
 
-- **No spot registration and no pre-registered list.** Students enter name, mobile, school and answer "Did you pay the ₹50 fee?" (Yes/No). Nobody is blocked on the fee answer; organisers compare it with their paid list after the quiz.
+- **No spot registration. Approved list of paid students.** Admin → Approved list takes an Excel/CSV of Name, Mobile, School. When the list has any numbers, only those mobiles can enter ("This number is not registered. Contact the organisers."); while it is empty, anyone can. Students still answer "Did you pay the ₹50 fee?" (Yes/No), which never blocks on its own.
 - **One quiz per mobile number, in total.** A number that has submitted any quiz can't enter again or start another one. Re-entering while a quiz is in progress resumes it and logs "Logged in on another device". Admin can delete a student (or use "Allow retake") to let them start again.
 - **Profile = created when the student enters details.** Status shown to admin: Waiting (not started), Doing (in progress), Completed (submitted).
 - **Time window:** opens at the start time; each student gets `duration` minutes but never past the closing time. Everything unfinished auto-submits at the closing time, even if the page is closed (server sweep every 15 s).
